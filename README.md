@@ -2,10 +2,16 @@
 
 [@electionbot](https://twitter.com/ElectionBot) is a twitter bot which returns elections results (currently from [vote2014 local elections](http://m.bbc.co.uk/news/events/vote2014)).
 
-You can start electionbot locally using Shell adaptor by running:
+### Run electionbot locally 
+
+Use Shell adaptor (for dev) by running:
 
     % bin/hubot
 
-rr using twitter adaptor:
+or using twitter adaptor:
 
     % bin/hubot -a twitter -n electionbot
+
+Then tweet it your postcode, e.g.
+
+@electionbot postcode w1a
