@@ -14,4 +14,5 @@ or using twitter adaptor:
 
 Then tweet it your postcode, e.g.
 
-    @electionbot postcode w1a
+    @electionbot result w1a
+    
