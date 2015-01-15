@@ -12,7 +12,9 @@ or using twitter adaptor:
 
     % bin/hubot -a twitter -n electionbot
 
-Then tweet it your postcode, e.g.
+Then tweet it your postcode to find your council result or MP, e.g.
 
     @electionbot result w1a
+    
+    @electionbot mp w1a
     
