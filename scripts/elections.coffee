@@ -3,15 +3,17 @@
 #
 # Todo:
 #   council/general election query
-#   find mp/twitter handle (csv)
+#   find mp/twitter handle (csv) - juicer get hansard
 #   local constituency news, hansard etc.
-#   bot response if no elections/no result found
+#   error handling if no council/no results
 #   parliament api - full bio
-#   use LDP lookup? (gssid->guid), get creativeworks about council
+#   use LDP lookup? (gssid->guid), get creativeworks about council/constituency
 #   heroku/cert, locator api key?
+#   rewrite in pure js (hate coffescript)
 
 fs = require('fs')
 https = require("https")
+csv = require("fast-csv");
 
 locatorOptions =
   host: "api.int.bbc.co.uk"
@@ -25,19 +27,35 @@ locatorOptions =
 module.exports = (robot) ->
   robot.respond /result (.*)/i, (msg) ->
     postcode = msg.match[1]
+    console.log "postcode #{postcode}"
 
     if isValidPostcode postcode
       console.log "valid postcode"
       postcode = postcode.replace(' ','%20')
-      path = "/locator/locations/#{postcode}/details/gss-council" #TODO: allow gss-seat queries
+      path = "/locator/locations/#{postcode}/details/gss-council" #TODO: allow gss-seat queries for general election results
 
-      getLocation msg, path, (response) ->
+      getLocation msg, path, getElectionResult, (response) ->
         msg.send response
     else
       console.log "invalid postcode"
       msg.send "Sorry but that is not valid postcode."
 
-getLocation = (msg, path, cb) ->
+  robot.respond /mp (.*)/i, (msg) ->
+    postcode = msg.match[1]
+    console.log "postcode #{postcode}"
+
+    if isValidPostcode postcode
+      console.log "valid postcode"
+      postcode = postcode.replace(' ','%20')
+      path = "/locator/locations/#{postcode}/details/gss-seat"
+
+      getLocation msg, path, getMP, (response) ->
+        msg.send response
+    else
+      console.log "invalid postcode"
+      msg.send "Sorry but that is not valid postcode."
+
+getLocation = (msg, path, cb1, cb2) ->
   console.log "getting location for path #{path}"
   locatorOptions.path = path
 
@@ -52,10 +70,10 @@ getLocation = (msg, path, cb) ->
 
       if jsonResult.response.details[0]
         nearest = jsonResult.response.details[0]
-        council = nearest.data.geographyName
+        name = nearest.data.geographyName
         gssid = nearest.externalId
 
-        getElectionResult msg, council, gssid, cb
+        cb1 msg, name, gssid, cb2
       return
 
     return
@@ -74,6 +92,26 @@ getElectionResult = (msg, council, gssid, cb) ->
     .get() (err, res, body) ->
       result = body.match(/<div[^>]*>\s+(\w+[\s\w+]+)\s+<\/div>/)
       cb council + ': ' + result[1]
+
+getMP = (msg, seat, gssid, cb) ->
+  console.log "getting MP for #{seat}"
+
+  seat = seat.replace(' Boro Const','')
+
+  members = {}
+
+  csv.fromPath("/Users/leostaples/Sites/electionbot/data/mp_twitter_accounts.csv",
+    headers: true
+  ).on("data", (data) ->
+    members[data.constituency] = data
+    return
+  ).on "end", ->
+    console.log "done", members[seat].twitter_handle
+    twitter = members[seat].twitter_handle
+    twitter = twitter.replace('https://twitter.com/','@')
+    cb "Your MP is #{twitter}"
+    return
+
 
 # see: http://stackoverflow.com/questions/164979/uk-postcode-regex-comprehensive/17507615#17507615
 # modified to accept partial postcodes
